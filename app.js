@@ -31,6 +31,7 @@ window.onload = function () {
             function (MediaStream) {
               var call = peer.call(peerId, MediaStream);
               setVideo(call);
+              answerBtn.hidden = true;
             }, function (error) {
               console.log('error', error)
             });
@@ -45,12 +46,11 @@ window.onload = function () {
         }
 
         function answer(call) {
-          answerBtn.hidden = true;
           setVideo(call);
           navigator.getUserMedia(mandatory,
             function (MediaStream) {
               call.answer(MediaStream);
-
+              answerBtn.hidden = true;
             }, function (error) {
               console.log('error', error)
             });
