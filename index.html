@@ -1,32 +1,30 @@
+<!DOCTYPE html>
 <html>
-<head>
-    <title>Screen sharing example</title>
-    <script src="https://code.jquery.com/jquery-1.10.1.min.js "></script>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title></title>
+  <script src="http://cdn.peerjs.com/0.3/peer.min.js"></script>
 </head>
 <body>
-<p align="center"><input type="button" id="share_screen" value="Share screen"/></p>
-<p align="center"><video id="video" autoplay/></p>
-<script language="javascript">
-    navigator.getUserMedia = navigator.webkitGetUserMedia || navigator.getUserMedia;
-    $('#share_screen').click(function() {
-        navigator.getUserMedia({
-                    audio: false,
-                    video: {
-                        mandatory: {
-                            chromeMediaSource: 'screen',
-                            maxWidth: 1280,
-                            maxHeight: 720
-                        },
-                        optional: []
-                    }
-                }, function(stream) {
-                    document.getElementById('video').src = window.URL.createObjectURL(stream);;
-                    $('#share_screen').hide();
-                }, function() {
-                    alert('Error, my friend. Screen stream is not available. Try in latest Chrome with Screen sharing enabled in about:flags.');
-                }
-        )
-    })
-</script>
+<div class="connection-wrapper">
+  <h2>Podłącz do peer.js</h2>
+
+  <form class="connection-form">
+    <input placeholder="Nazwa użytkownika" type="text" class="username"/>
+    <button>Wejdź</button>
+  </form>
+</div>
+<div class="call-wrapper" hidden="true">
+  <h2>Zadzwoń do</h2>
+  <form class="call-form">
+    <input placeholder="Nazwa użytkownika" type="text" class="call-to"/>
+    <button>Połącz</button>
+  </form>
+</div>
+<div class="video-wrapper" hidden>
+  <video autoplay="true"></video>
+  <button class="answer">Odbierz</button>
+</div>
+<script type="text/javascript" src="app.js"></script>
 </body>
 </html>
