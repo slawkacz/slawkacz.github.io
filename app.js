@@ -19,7 +19,13 @@ window.onload = function () {
     e.preventDefault();
     var username = connectionForm.querySelector('.username').value;
     if (username !== '') {
-      var peer = new Peer(username.replace(/\s/g, '_'), {key: 'k7vpr9xlmbc323xr'});
+      var peer = new Peer(username.replace(/\s/g, '_'), {key: 'k7vpr9xlmbc323xr', config: {'iceServers': [
+        {url: 'stun:stun.l.google.com:19302'},
+        {url: 'stun:stun1.l.google.com:19302'},
+        {url: 'stun:stun2.l.google.com:19302'},
+        {url: 'stun:stun3.l.google.com:19302'},
+        {url: 'stun:stun4.l.google.com:19302'}
+      ]}});
       peer.on('open', function () {
         connectionWrapper.hidden = true;
         callWrapper.hidden = false;
