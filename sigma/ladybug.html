@@ -1,0 +1,346 @@
+<!-- START SIGMA IMPORTS -->
+<link rel="stylesheet" href="animate.css" class="css">
+<script src="src/sigma.core.js"></script>
+<script src="src/conrad.js"></script>
+<script src="src/utils/sigma.utils.js"></script>
+<script src="src/utils/sigma.polyfills.js"></script>
+<script src="src/sigma.settings.js"></script>
+<script src="src/classes/sigma.classes.dispatcher.js"></script>
+<script src="src/classes/sigma.classes.configurable.js"></script>
+<script src="src/classes/sigma.classes.graph.js"></script>
+<script src="src/classes/sigma.classes.camera.js"></script>
+<script src="src/classes/sigma.classes.quad.js"></script>
+<script src="src/classes/sigma.classes.edgequad.js"></script>
+<script src="src/captors/sigma.captors.mouse.js"></script>
+<script src="src/captors/sigma.captors.touch.js"></script>
+<script src="src/renderers/sigma.renderers.canvas.js"></script>
+<script src="src/renderers/sigma.renderers.webgl.js"></script>
+<script src="src/renderers/sigma.renderers.svg.js"></script>
+<script src="src/renderers/sigma.renderers.def.js"></script>
+<script src="src/renderers/webgl/sigma.webgl.nodes.def.js"></script>
+<script src="src/renderers/webgl/sigma.webgl.nodes.fast.js"></script>
+<script src="src/renderers/webgl/sigma.webgl.edges.def.js"></script>
+<script src="src/renderers/webgl/sigma.webgl.edges.fast.js"></script>
+<script src="src/renderers/webgl/sigma.webgl.edges.arrow.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.labels.def.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.hovers.def.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.nodes.def.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edges.def.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edges.curve.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edges.arrow.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edges.curvedArrow.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edgehovers.def.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edgehovers.curve.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edgehovers.arrow.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.edgehovers.curvedArrow.js"></script>
+<script src="src/renderers/canvas/sigma.canvas.extremities.def.js"></script>
+<script src="src/renderers/svg/sigma.svg.utils.js"></script>
+<script src="src/renderers/svg/sigma.svg.nodes.def.js"></script>
+<script src="src/renderers/svg/sigma.svg.edges.def.js"></script>
+<script src="src/renderers/svg/sigma.svg.edges.curve.js"></script>
+<script src="src/renderers/svg/sigma.svg.labels.def.js"></script>
+<script src="src/renderers/svg/sigma.svg.hovers.def.js"></script>
+<script src="src/middlewares/sigma.middlewares.rescale.js"></script>
+<script src="src/middlewares/sigma.middlewares.copy.js"></script>
+<script src="src/misc/sigma.misc.animation.js"></script>
+<script src="src/misc/sigma.misc.bindEvents.js"></script>
+<script src="src/misc/sigma.misc.bindDOMEvents.js"></script>
+<script src="src/misc/sigma.misc.drawHovers.js"></script>
+<!-- END SIGMA IMPORTS -->
+<div id="container">
+  <style>
+    body {
+      margin: 0;
+    }
+    #graph-container {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      position: absolute;
+      background: #fff;
+    }
+    #container {
+      position: relative;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 300%;
+      width:300%
+      background: #ccc;
+    }
+    #news {
+       position: fixed;
+       top:0;
+       left:0;
+       width:0;
+       height:0;
+       right:0;
+       bottom:0;
+       z-index:2;
+       overflow:hidden;
+       color:#fff;
+    }
+    #news.showed {
+       width:100%;
+       height:100%;
+       background:black;
+    }
+    #news img {
+      width:300px;
+      height: 300px;
+    }
+  </style>
+  <div id="graph-container"></div>
+  <div id="news" class="animated tada">
+    <div id="close">close</div>
+    <img/>
+    Lorem ipsum dolor sit amet, consectetur adipisicing elit. Debitis facilis nostrum ipsam eum enim, veritatis nesciunt ipsum perferendis a cumque? Facere inventore omnis saepe nihil. Debitis illo laudantium quos veritatis.
+  </div>
+</div>
+<script src="plugins/sigma.layout.forceAtlas2/worker.js"></script>
+<script src="plugins/sigma.layout.forceAtlas2/supervisor.js"></script>
+<script>
+  /**
+ * This is a basic example on how to develop a custom node renderer. In
+ * this example, the renderer will display an image clipped in a disc,
+ * with a border colored according the node's "color" value.
+ *
+ * If a node as the value "image" to its attribute "type", then it will
+ * displayed with the node renderer "sigma.canvas.nodes.image", with the
+ * url being its "url" value.
+ *
+ * IMPORTANT: This node renderer just works with the canvas renderer. If
+ * you do want to display images with the WebGL renderer, you will have
+ * to develop a specific WebGL node renderer.
+ */
+sigma.utils.pkg('sigma.canvas.nodes');
+sigma.canvas.nodes.image = (function() {
+  var _cache = {},
+      _loading = {},
+      _callbacks = {};
+
+  // Return the renderer itself:
+  var renderer = function(node, context, settings) {
+    
+    var args = arguments,
+        prefix = settings('prefix') || '',
+        size = node['size'],
+        color = node.color || settings('defaultNodeColor'),
+        url = node.url;
+
+    if (_cache[url]) {
+      context.save();
+
+      // Draw the clipping disc:
+      context.beginPath();
+      context.arc(
+        node[prefix + 'x'],
+        node[prefix + 'y'],
+        node['size'],
+        0,
+        Math.PI * 2,
+        true
+      );
+      context.closePath();
+      context.clip();
+
+      // Draw the image
+      context.drawImage(
+        _cache[url],
+        node[prefix + 'x'] - size,
+        node[prefix + 'y'] - size,
+        2 * size,
+        2 * size
+      );
+
+      // Quit the "clipping mode":
+      context.restore();
+    } else {
+      sigma.canvas.nodes.image.cache(url);
+      sigma.canvas.nodes.def.apply(
+        sigma.canvas.nodes,
+        args
+      );
+    }
+  };
+
+  // Let's add a public method to cache images, to make it possible to
+  // preload images before the initial rendering:
+  renderer.cache = function(url, callback) {
+    if (callback)
+      _callbacks[url] = callback;
+
+    if (_loading[url])
+      return;
+
+    var img = new Image();
+
+    img.onload = function() {
+      _loading[url] = false;
+      _cache[url] = img;
+
+      if (_callbacks[url]) {
+        _callbacks[url].call(this, img);
+        delete _callbacks[url];
+      }
+    };
+
+    _loading[url] = true;
+    img.src = url;
+  };
+
+  return renderer;
+})();
+
+// Now that's the renderer has been implemented, let's generate a graph
+// to render:
+var i,
+    s,
+    img,
+    N = 80,
+    E = 200,
+    g = {
+      nodes: [],
+      edges: []
+    },
+    loaded = 0,
+    colors = [
+      '#617db4',
+      '#668f3c',
+      '#c6583e',
+      '#b956af'
+    ];
+
+// Generate a random graph, with ~30% nodes having the type "image":
+for (i = 0; i < N; i++) {
+  img = true;
+  g.nodes.push({
+    id: 'n' + i,
+    label: 'Node ' + i,
+    type: img ? 'image' : 'def',
+    url: 'http://lorempixel.com/200/200/?a='+i,
+    x: Math.random(),
+    y: Math.random(),
+    size: Math.floor(Math.random()*30),
+    color: colors[Math.floor(Math.random() * colors.length)]
+  });
+}
+
+for (i = 0; i < E; i++)
+  g.edges.push({
+    id: 'e' + i,
+    source: 'n' + (Math.random() * N | 0),
+    target: 'n' + (Math.random() * N | 0),
+    size: Math.random()*100
+  });
+  
+  sigma.classes.graph.addMethod('neighbors', function(nodeId) {
+    var k,
+        neighbors = {},
+        index = this.allNeighborsIndex[nodeId] || {};
+
+    for (k in index)
+      neighbors[k] = this.nodesIndex[k];
+
+    return neighbors;
+  });
+
+// Then, wait for all images to be loaded before instanciating sigma:
+g.nodes.forEach(function(node) {
+  sigma.canvas.nodes.image.cache(
+    node.url,
+    function() {
+      if (++loaded === g.nodes.length) {
+        // Instantiate sigma:
+        s = new sigma({
+          graph: g,
+          renderer: {
+            // IMPORTANT:
+            // This works only with the canvas renderer, so the
+            // renderer type set as "canvas" is necessary here.
+            container: document.getElementById('graph-container'),
+            type: 'canvas'
+          },
+          settings: {
+            minNodeSize: 8,
+            maxNodeSize: 16,
+          }
+        });
+        
+        
+        // We first need to save the original colors of our
+      // nodes and edges, like this:
+      s.graph.nodes().forEach(function(n) {
+        n.originalColor = n.color;
+        n.originalSize = n.size;
+      });
+      s.graph.edges().forEach(function(e) {
+        e.originalColor = e.color;
+      });
+
+      // When a node is clicked, we check for each node
+      // if it is a neighbor of the clicked one. If not,
+      // we set its color as grey, and else, it takes its
+      // original color.
+      // We do the same for the edges, and we only keep
+      // edges that have both extremities colored.
+      s.bind('clickNode', function(e) {
+        var nodeId = e.data.node.id,
+            toKeep = s.graph.neighbors(nodeId);
+        toKeep[nodeId] = e.data.node;
+
+        s.graph.nodes().forEach(function(n) {
+          if (toKeep[n.id]) {
+            n.color = n.originalColor;
+             n.hidden = false;;
+          }
+          else {
+            n.color = '#fff';
+            n.hidden = true;;
+          }
+        });
+
+        s.graph.edges().forEach(function(e) {
+          if (toKeep[e.source] && toKeep[e.target])
+            e.color = e.originalColor;
+          else
+            e.color = '#fff';
+        });
+
+        // Since the data has been modified, we need to
+        // call the refresh method to make the colors
+        // update effective.
+        s.refresh();
+      });
+      s.bind('doubleClickNode', function(e) {
+        console.log(e.data.node.url);
+        var news =document.querySelector('#news');
+        news.classList.add('showed');
+        news.querySelector('img').src = e.data.node.url;
+      })
+
+      // When the stage is clicked, we just color each
+      // node and edge with its original color.
+      s.bind('clickStage', function(e) {
+        s.graph.nodes().forEach(function(n) {
+          n.color = n.originalColor;
+          n.hidden = false;
+        });
+
+        s.graph.edges().forEach(function(e) {
+          e.color = e.originalColor;
+        });
+
+        // Same as in the previous event:
+        s.refresh();
+      });
+       // s.startForceAtlas2({worker:true,edgeWeightInfluence:1,slowDown:1,strongGravityMode:true,adjustSizes:true});
+        }
+    }
+  );
+});
+ document.querySelector('#close').addEventListener('click',function(){
+   document.querySelector("#news").classList.remove('showed');
+ })
+</script>
